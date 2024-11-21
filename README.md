@@ -18,13 +18,13 @@ Before running, install the required libraries:
 
 ```bash
 pip install requests beautifulsoup4
-
+```
 
 Run the script by: 
 
 ```bash
 python download_website.py
-
+```
 
 Note: 
 - Replace `'https://example.com'` with your target website.
