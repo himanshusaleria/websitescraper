@@ -29,7 +29,7 @@ python download_website.py
 Note: 
 - Replace `'https://example.com'` with your target website.
 - Respect robots.txt and the website's terms of service.
-- Be aware of potential legal and ethical implications of mass downloading.
+- Some websites may block or rate-limit scraping attempts.
 
-*Important*: Some websites may block or rate-limit scraping attempts.
+**Important**: Be aware of potential legal and ethical implications of mass downloading.
 
