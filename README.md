@@ -1,9 +1,35 @@
-# Website Scraper
-Use this scrapper to download website to train your AI model. 
+# Website Content Downloader
+
+A Python script to download the entire content of a website from a root URL. We'll use the `requests` library to fetch web pages and `BeautifulSoup` for parsing HTML.
+
+## Features
+
+This script provides a comprehensive website downloader with several key features:
+
+- **Domain-specific downloading**
+- **Recursive link extraction**
+- **Unique filename generation**
+- **Error handling**
+- **Configurable page limit**
+
+## Installation
+
+Before running, install the required libraries:
+
+```bash
+pip install requests beautifulsoup4
 
 
-Install dependency: 
+Run the script by: 
 
-`pip install requests beautifulsoup4`
+```bash
+python download_website.py
 
-`python download_website.py`
+
+Note: 
+- Replace `'https://example.com'` with your target website.
+- Respect robots.txt and the website's terms of service.
+- Be aware of potential legal and ethical implications of mass downloading.
+
+*Important*: Some websites may block or rate-limit scraping attempts.
+
