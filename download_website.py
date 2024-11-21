@@ -1,11 +1,13 @@
 import os
 import requests
+import argparse
+
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import re
 
 class WebsiteTextExtractor:
-    def __init__(self, root_url, output_dir= "extracted_text", max_pages=100):
+    def __init__(self, root_url, excluded_paths=None,output_dir= "extracted_text", max_pages=None):
         """
         Initialize the website text extractor.
         
@@ -13,27 +15,65 @@ class WebsiteTextExtractor:
         :param output_dir: Directory to save extracted text
         :param max_pages: Maximum number of pages to extract
         """
+        print(root_url, excluded_paths, output_dir, max_pages)
         output_dir = root_url.replace("https://", "").replace(".", "_")
         self.root_url = root_url
         self.base_domain = urlparse(root_url).netloc
         self.output_dir = output_dir
         self.max_pages = max_pages
         self.visited_urls = set()
+         
+        # Compile excluded path patterns
+        self.excluded_patterns = []
+        if excluded_paths:
+            self.excluded_patterns = [re.compile(pattern) for pattern in excluded_paths]
         
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
+    
+    def normalize_url(self, url):
+        """
+        Normalize URL by removing scheme, domain, and standardizing slashes.
+        
+        :param url: URL to normalize
+        :return: Normalized path
+        """
+        parsed_url = urlparse(url)
+        # Remove leading/trailing slashes, convert to lowercase
+        normalized_path = parsed_url.path.strip('/').lower()
+        return normalized_path if normalized_path else 'index'
 
     def is_valid_url(self, url):
         """
-        Check if the URL is valid and within the same domain.
+        Check if the URL is valid and not excluded.
         
         :param url: URL to validate
         :return: Boolean indicating if URL is valid
         """
         parsed_url = urlparse(url)
-        return (parsed_url.netloc == self.base_domain or 
-                parsed_url.netloc == '') and \
-               parsed_url.scheme in ['http', 'https']
+        
+        # Check domain
+        if parsed_url.netloc != self.base_domain:
+            return False
+        
+        # Check scheme
+        if parsed_url.scheme not in ['http', 'https']:
+            return False
+        
+        # Normalize path
+        normalized_path = self.normalize_url(url)
+        
+        # Check against excluded path patterns
+        for pattern in self.excluded_patterns:
+            if pattern.search(normalized_path):
+                return False
+        
+        # Check if URL has already been visited
+        if normalized_path in self.visited_urls:
+            return False
+        
+        return True
+
 
     def download_page(self, url):
         """
@@ -93,6 +133,9 @@ class WebsiteTextExtractor:
                 return f"\n```\n{tag.get_text(strip=True)}\n```\n"
             elif tag.name == 'p':
                 return f"\n{tag.get_text(strip=True)}\n"
+            elif tag.name == 'span':
+                return f"\n{tag.get_text(strip=True)}\n"
+                
             return tag.get_text(strip=True)
         
         # Process the document with formatting
@@ -100,7 +143,7 @@ class WebsiteTextExtractor:
         for element in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
                                       'p', 'strong', 'b', 'em', 'i', 
                                       'ul', 'ol', 'blockquote', 
-                                      'code', 'pre']):
+                                      'code', 'pre','span']):
             formatted_text.append(convert_tag(element))
         
         # Join and clean up text
@@ -172,7 +215,11 @@ class WebsiteTextExtractor:
         while to_visit and len(self.visited_urls) < self.max_pages:
             current_url = to_visit.pop()
             
-            if current_url in self.visited_urls:
+            # Normalize current URL path
+            normalized_path = self.normalize_url(current_url)
+            
+            # Skip if already visited
+            if normalized_path in self.visited_urls:
                 continue
             
             print(f"Extracting text from: {current_url}")
@@ -187,19 +234,40 @@ class WebsiteTextExtractor:
                 if text:
                     self.save_text(current_url, text)
                 
-                self.visited_urls.add(current_url)
+                # Mark as visited
+                self.visited_urls.add(normalized_path)
                 
                 # Extract and add new links
                 new_links = self.extract_links(content, current_url)
                 to_visit.update(link for link in new_links 
-                                if link not in self.visited_urls)
+                                if self.is_valid_url(link))
         
         print(f"Extracted text from {len(self.visited_urls)} pages.")
 
+
 def main():
+    parser = argparse.ArgumentParser(description='Extract text from a website')
+    parser.add_argument('url', help='Root URL of the website to extract')
+    parser.add_argument('-m', '--max-pages', type=int, default=50, 
+                        help='Maximum number of pages to extract (default: 50)')
+    parser.add_argument('-o', '--output-dir', default='extracted_text', 
+                        help='Output directory for extracted text (default: extracted_text)')
+    parser.add_argument('-x', '--exclude', nargs='+', 
+                        help='Path patterns to exclude (regex)', default=[])
+
+    
+
+    args = parser.parse_args()
+    extractor = WebsiteTextExtractor(
+        root_url=args.url, 
+        max_pages=args.max_pages,
+        output_dir=args.output_dir,
+        excluded_paths=args.exclude
+    )
+
     # Example usage
-    root_url = 'https://likeminds.community'  # Replace with your target website
-    extractor = WebsiteTextExtractor(root_url, max_pages=50)
+    # root_url = 'https://likeminds.community'  # Replace with your target website
+    # extractor = WebsiteTextExtractor(root_url, max_pages=50)
     extractor.extract_website_text()
 
 if __name__ == '__main__':

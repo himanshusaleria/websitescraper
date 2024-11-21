@@ -23,8 +23,22 @@ pip install requests beautifulsoup4
 Run the script by: 
 
 ```bash
-python download_website.py
+python website_extractor.py https://example.com
 ```
+
+Additional options:
+```bash
+# Limit to 20 pages
+python website_extractor.py https://example.com -m 20
+
+# Specify custom output directory
+python website_extractor.py https://example.com -o my_extracted_text
+
+# Exclude specific paths
+python website_extractor.py https://example.com -x "blog" "category"
+
+```
+
 
 Note: 
 - Replace `'https://example.com'` with your target website.
